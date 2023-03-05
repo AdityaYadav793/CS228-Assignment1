@@ -43,6 +43,19 @@ for i in range(T):
 
 	States.append(state)
 
+state=[]
+for j in range(n):
+	row=[]
+	for k in range(n):
+		var= Int(f'S_{T}_x_{j}_{k}')
+		row.append(var)
+		s.add(var>=1,var<=n*n)
+	
+	state.append(row)
+
+States.append(state)
+
+
 st=States[0]
 for i in range(n):
 	for j in range(n):
@@ -51,7 +64,7 @@ for i in range(n):
 
 
 
-for i in range(T-1):
+for i in range(T):
 	inp=Inputs[i]
 
 	for j in range(n):
@@ -73,14 +86,33 @@ for i in range(T-1):
 			#Column Up Shift
 			s.add(Implies(And(inp[0]==True, inp[1]==j, inp[2]==True), States[i+1][k][j]==States[i][(k+1)%n][j]))
 			s.add(Implies(And(inp[0]==True, inp[1]!=j, inp[2]==True), States[i+1][k][j]==States[i][k][j]))
-		
+
+
+finalState=States[T]
+for i in range(n):
+	for j in range(n):
+		s.add(finalState[i][j]==i*n+j+1)
 
 x = s.check()
 print(x)
 if x == sat:
 	m = s.model()
-	for i in range(T-1):
+	
+	for i in range(T):
 		inp=Inputs[i]
 
+		if m[inp[0]]==False:
+			if m[inp[2]]==False:
+				print(str(m[inp[1]])+'l')
+			else:
+				print(str(m[inp[1]])+'r')
 		
+		else:
+			if m[inp[2]]==False:
+				print(str(m[inp[1]])+'d')
+			else:
+				print(str(m[inp[1]])+'u')
+				
+
+
 	# Output the moves
