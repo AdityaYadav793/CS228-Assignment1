@@ -6,6 +6,7 @@
 
 from z3 import *
 import sys
+import numpy as np
 
 file = sys.argv[1]
 
@@ -15,104 +16,61 @@ with open(file) as f:
 	for line in f:
 		matrix.append([int(x) for x in line.split()])
 
+print(matrix)
+
 s = Solver()
 
 # Set s to the required formula
-
-Inputs = []
-States=[]
-
-for i in range(T):
-	tmp=[]
-	tmp.append(Bool(f'in_0_{i}'))
-	tmp.append(Int(f'in_1_{i}'))
-	tmp.append(Bool(f'in_2_{i}'))
-	Inputs.append(tmp)
-
-	s.add(tmp[1]>=0, tmp[1]<n)
-
-	state=[]
-	for j in range(n):
-		row=[]
-		for k in range(n):
-			var= Int(f'S_{i}_x_{j}_{k}')
-			row.append(var)
-			s.add(var>=1,var<=n*n)
-		
-		state.append(row)
-
-	States.append(state)
-
-state=[]
-for j in range(n):
-	row=[]
-	for k in range(n):
-		var= Int(f'S_{T}_x_{j}_{k}')
-		row.append(var)
-		s.add(var>=1,var<=n*n)
-	
-	state.append(row)
-
-States.append(state)
-
-
-st=States[0]
-for i in range(n):
-	for j in range(n):
-		s.add(st[i][j]==matrix[i][j])
-
-
-
+solution = [[[Int(f"s{k}x{i}y{j}") for j in range(n)] for i in range(n)] for k in range(T+1)]
+s.add(And([solution[0][i][j] == matrix[i][j] for j in range(n) for i in range(n)]))
+s.add(Or(And([solution[T][i][j] == n*i+j+1 for j in range(n) for i in range(n)]), And([solution[T-1][i][j] == n*i+j+1 for j in range(n) for i in range(n)])))
 
 for i in range(T):
-	inp=Inputs[i]
+	transition = []
+	for rc in range(n):
+		left, right, up, down = [], [], [], []
+		for j in range(n):
+			for k in range(n):
+				left.append(solution[i+1][j][k] == solution[i][j][k if j != rc else (k+1)%n])
+				right.append(solution[i+1][j][k if j != rc else (k+1)%n] == solution[i][j][k])
+				up.append(solution[i+1][j][k] == solution[i][j if k != rc else (j+1)%n][k])
+				down.append(solution[i+1][j if k != rc else (j+1)%n][k] == solution[i][j][k])
+		# print(len(left), len(right), len(up), len(down))
+		transition.append(And(left))
+		transition.append(And(right))
+		transition.append(And(up))
+		transition.append(And(down))
 
-	for j in range(n):
-		
-		for k in range(n):
+	s.add(Or(transition))
 
-			#Row Left Shift
-			s.add(Implies(And(inp[0]==False, inp[1]==j, inp[2]==False), States[i+1][j][k]==States[i][j][(k+1)%n]))
-			s.add(Implies(And(inp[0]==False, inp[1]!=j, inp[2]==False), States[i+1][j][k]==States[i][j][k]))
-
-			#Row Right Shift
-			s.add(Implies(And(inp[0]==False, inp[1]==j, inp[2]==True), States[i+1][j][(k+1)%n]==States[i][j][k]))
-			s.add(Implies(And(inp[0]==False, inp[1]!=j, inp[2]==True), States[i+1][j][k]==States[i][j][k]))
-
-			#Column down Shift
-			s.add(Implies(And(inp[0]==True, inp[1]==j, inp[2]==False), States[i+1][(k+1)%n][j]==States[i][k][j]))
-			s.add(Implies(And(inp[0]==True, inp[1]!=j, inp[2]==False), States[i+1][k][j]==States[i][k][j]))
-
-			#Column Up Shift
-			s.add(Implies(And(inp[0]==True, inp[1]==j, inp[2]==True), States[i+1][k][j]==States[i][(k+1)%n][j]))
-			s.add(Implies(And(inp[0]==True, inp[1]!=j, inp[2]==True), States[i+1][k][j]==States[i][k][j]))
-
-
-finalState=States[T]
-for i in range(n):
-	for j in range(n):
-		s.add(finalState[i][j]==i*n+j+1)
-
+# print(s)
 x = s.check()
 print(x)
 if x == sat:
 	m = s.model()
 	
-	for i in range(T):
-		inp=Inputs[i]
-
-		if m[inp[0]]==False:
-			if m[inp[2]]==False:
-				print(str(m[inp[1]])+'l')
-			else:
-				print(str(m[inp[1]])+'r')
-		
-		else:
-			if m[inp[2]]==False:
-				print(str(m[inp[1]])+'d')
-			else:
-				print(str(m[inp[1]])+'u')
-				
-
-
 	# Output the moves
+	moves = [[[0 for i in range(n)] for j in range(n)] for k in range(T+1)]
+	# print(len(moves), len(moves[0]), len(moves[0][0]))
+	for var in m:
+		name = str(var)
+		s, x, y = int(name[1]), int(name[3]), int(name[5])
+		# print(s, x, y, m[var])
+		moves[s][x][y] = m[var]
+	# print(moves)
+ 
+	for move in range(T):
+		dif = []
+		for i in range(n):
+			for j in range(n):
+				if not moves[move][i][j] == moves[move+1][i][j]:
+					dif.append((i, j))
+		if dif[0][0] == dif[1][0]:
+			row = dif[0][0]
+			print(row, end="")
+			print("r" if moves[move+1][row][1] == moves[move][row][0] else "l")
+		else:
+			col = dif[0][1]
+			print(col, end="")
+			print("d" if moves[move+1][1][col] == moves[move][0][col] else "u")
+   
