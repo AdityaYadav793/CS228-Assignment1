@@ -59,12 +59,13 @@ if x == sat:
 		moves[s][x][y] = m[var]
 	# print(moves)
  
-	for move in range(T):
-		dif = []
-		for i in range(n):
-			for j in range(n):
-				if not moves[move][i][j] == moves[move+1][i][j]:
-					dif.append((i, j))
+	Tmoves = (np.arange(1, n*n+1).reshape(n, n) == moves[T]).all()
+	# for i in range(n):
+	# 	for j in range(n):
+	# 		Tmoves = Tmoves and 
+ 
+	for move in range(T - (not Tmoves)):
+		dif = [(i, j) for i in range(n) for j in range(n) if not moves[move][i][j] == moves[move+1][i][j]]
 		if dif[0][0] == dif[1][0]:
 			row = dif[0][0]
 			print(row, end="")
