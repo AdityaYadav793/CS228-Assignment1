@@ -16,7 +16,7 @@ with open(file) as f:
 	for line in f:
 		matrix.append([int(x) for x in line.split()])
 
-print(matrix)
+# print(matrix)
 
 s = Solver()
 
@@ -35,7 +35,6 @@ for i in range(T):
 				right.append(solution[i+1][j][k if j != rc else (k+1)%n] == solution[i][j][k])
 				up.append(solution[i+1][j][k] == solution[i][j if k != rc else (j+1)%n][k])
 				down.append(solution[i+1][j if k != rc else (j+1)%n][k] == solution[i][j][k])
-		# print(len(left), len(right), len(up), len(down))
 		transition.append(And(left))
 		transition.append(And(right))
 		transition.append(And(up))
@@ -43,7 +42,6 @@ for i in range(T):
 
 	s.add(Or(transition))
 
-# print(s)
 x = s.check()
 print(x)
 if x == sat:
@@ -51,18 +49,12 @@ if x == sat:
 	
 	# Output the moves
 	moves = [[[0 for i in range(n)] for j in range(n)] for k in range(T+1)]
-	# print(len(moves), len(moves[0]), len(moves[0][0]))
 	for var in m:
 		name = str(var)
 		s, x, y = int(name[1]), int(name[3]), int(name[5])
-		# print(s, x, y, m[var])
 		moves[s][x][y] = m[var]
-	# print(moves)
  
 	Tmoves = (np.arange(1, n*n+1).reshape(n, n) == moves[T]).all()
-	# for i in range(n):
-	# 	for j in range(n):
-	# 		Tmoves = Tmoves and 
  
 	for move in range(T - (not Tmoves)):
 		dif = [(i, j) for i in range(n) for j in range(n) if not moves[move][i][j] == moves[move+1][i][j]]
